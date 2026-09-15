@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="ko">
 <head>
     <title>학교 일정 알리미</title>
@@ -986,13 +986,13 @@ body.timicraft-lock-active {
 
         <table class="schedule">
             <tr>
-                <th></th>
-                <th>월요일<br>09/07</th>
-                <th>화요일<br>09/08</th>
-                <th>수요일<br>09/09</th>
-                <th>목요일<br>09/10</th>
-                <th>금요일<br>09/11</th>
-            </tr>
+    <th></th>
+    <th>월요일<br><span id="schedule-date-mon"></span></th>
+    <th>화요일<br><span id="schedule-date-tue"></span></th>
+    <th>수요일<br><span id="schedule-date-wed"></span></th>
+    <th>목요일<br><span id="schedule-date-thu"></span></th>
+    <th>금요일<br><span id="schedule-date-fri"></span></th>
+</tr>
 
             <tbody id="schedule-body"></tbody>
         </table>
@@ -1255,6 +1255,14 @@ async function loadTimetable() {
 
     const week = getWeekDates();
     const dayIds = ["mon", "tue", "wed", "thu", "fri"];
+
+    // 🔧 추가: 요일 헤더의 날짜를 매번 이번 주 기준으로 갱신
+    week.forEach((date, d) => {
+        const formatted = date.substring(4, 6) + "/" + date.substring(6, 8);
+        const headerEl = document.getElementById(`schedule-date-${dayIds[d]}`);
+        if (headerEl) headerEl.textContent = formatted;
+    });
+
     const timetableKey = `${info.level || "mis"}Timetable`;
 
     // 5일을 동시에 요청해서 기존의 순차 요청보다 빠르게 로딩
