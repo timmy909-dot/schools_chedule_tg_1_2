@@ -1,4 +1,4 @@
-
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <title>학교 일정 알리미</title>
@@ -1525,6 +1525,39 @@ function highlightTodayAndCurrentClass() {
 
 // 1분마다 현재 교시 확인
 setInterval(highlightTodayAndCurrentClass, 60000);
+
+// =========================
+// 급식표 오늘 날짜 강조
+// =========================
+function highlightTodayMeal(today, weekdays) {
+    // 기본 배경으로 복구
+    weekdays.forEach(day => {
+        const dateCell = document.getElementById(`meal-date-${day}`);
+        const mealCell = document.getElementById(`meal-${day}`);
+
+        [dateCell, mealCell].forEach(cell => {
+            if (cell) {
+                cell.style.backgroundColor = "#f0f8ff";
+                cell.style.fontWeight = "normal";
+            }
+        });
+    });
+
+    if (!weekdays.includes(today)) {
+        return;
+    }
+
+    // 오늘 날짜 강조
+    const todayDateCell = document.getElementById(`meal-date-${today}`);
+    const todayMealCell = document.getElementById(`meal-${today}`);
+
+    [todayDateCell, todayMealCell].forEach(cell => {
+        if (cell) {
+            cell.style.backgroundColor = "#FFFF00";
+            cell.style.fontWeight = "bold";
+        }
+    });
+}
 // =========================
 // 반 목록
 // =========================
