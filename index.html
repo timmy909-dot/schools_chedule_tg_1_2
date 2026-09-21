@@ -947,6 +947,35 @@ body.timicraft-lock-active {
     overflow: hidden !important;
 }
 
+/* 급식표 오늘 강조 */
+.eat td.meal-today {
+    background-color: #FFFF00 !important;
+    font-weight: bold;
+}
+
+body.dark-mode .eat td.meal-today {
+    background-color: #fff176 !important;
+    color: #111 !important;
+}
+/* 시간표 오늘 / 현재 교시 강조 */
+.schedule td.today-cell {
+    background-color: #FFFF00 !important;
+}
+
+.schedule td.current-class {
+    background-color: #ADFF2F !important;
+    font-weight: bold;
+}
+
+body.dark-mode .schedule td.today-cell {
+    background-color: #fff176 !important;
+    color: #111 !important;
+}
+
+body.dark-mode .schedule td.current-class {
+    background-color: #a5f3a8 !important;
+    color: #111 !important;
+}
 </style>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
@@ -1323,10 +1352,13 @@ async function loadMeals() {
     const week = getWeekDates();
     const mealDays = ["mon", "tue", "wed", "thu", "fri"];
 
-    // 먼저 날짜와 상태 초기화
+    // 먼저 상태 초기화
     mealDays.forEach(day => {
         document.getElementById(`meal-${day}`).textContent = "불러오는 중...";
     });
+
+    // 오늘 급식 칸 강조
+    highlightTodayMeal();
 
     const requests = week.map((date, d) => {
         const formattedDate =
@@ -1439,123 +1471,59 @@ function setupClassNotifications() {
 function highlightTodayAndCurrentClass() {
 
     const now = new Date();
-
-    const dayNames = [
-        "sun",
-        "mon",
-        "tue",
-        "wed",
-        "thu",
-        "fri",
-        "sat"
-    ];
-
+    const dayNames = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
     const today = dayNames[now.getDay()];
-
-    const hour = now.getHours();
-    const minute = now.getMinutes();
-
-    // 월~금 시간표의 기존 강조 제거
     const weekdays = ["mon", "tue", "wed", "thu", "fri"];
 
+    // 기존 강조 제거
     weekdays.forEach(day => {
-
         for (let i = 1; i <= 7; i++) {
-
             const cell = document.getElementById(`${day}${i}`);
-
-            if (cell) {
-                cell.style.backgroundColor = "#e6f7ff";
-                cell.style.fontWeight = "normal";
-            }
-
+            if (cell) cell.classList.remove("today-cell", "current-class");
         }
-
     });
 
     // 주말이면 종료
-    if (!["mon", "tue", "wed", "thu", "fri"].includes(today)) {
-        return;
-    }
+    if (!weekdays.includes(today)) return;
 
-    // 오늘 요일 전체 노란색
+    // 오늘 요일 전체 강조
     for (let i = 1; i <= 7; i++) {
-
         const cell = document.getElementById(`${today}${i}`);
-
-        if (cell) {
-            cell.style.backgroundColor = "#FFFF00";
-        }
-
+        if (cell) cell.classList.add("today-cell");
     }
 
-    // 현재 시간(분)
-    const nowMinutes = hour * 60 + minute;
+    // 현재 교시 강조
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
-    // 현재 교시 찾기
     classTimes.forEach((time, index) => {
+        const startMinutes = time.start[0] * 60 + time.start[1];
+        const endMinutes = time.end[0] * 60 + time.end[1];
 
-        const startMinutes =
-            time.start[0] * 60 + time.start[1];
-
-        const endMinutes =
-            time.end[0] * 60 + time.end[1];
-
-        if (
-            nowMinutes >= startMinutes &&
-            nowMinutes < endMinutes
-        ) {
-
-            const cell =
-                document.getElementById(`${today}${index + 1}`);
-
-            if (cell) {
-
-                // 현재 교시는 초록색
-                cell.style.backgroundColor = "#ADFF2F";
-
-                cell.style.fontWeight = "bold";
-            }
-
+        if (nowMinutes >= startMinutes && nowMinutes < endMinutes) {
+            const cell = document.getElementById(`${today}${index + 1}`);
+            if (cell) cell.classList.add("current-class");
         }
-
     });
-
 }
 
 // 1분마다 현재 교시 확인
+setInterval(highlightTodayMeal, 60000);
 setInterval(highlightTodayAndCurrentClass, 60000);
 
 // =========================
 // 급식표 오늘 날짜 강조
 // =========================
-function highlightTodayMeal(today, weekdays) {
-    // 기본 배경으로 복구
-    weekdays.forEach(day => {
+function highlightTodayMeal() {
+    const dayNames = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+    const today = dayNames[new Date().getDay()];
+
+    ["mon", "tue", "wed", "thu", "fri"].forEach(day => {
+        const isToday = day === today;
         const dateCell = document.getElementById(`meal-date-${day}`);
         const mealCell = document.getElementById(`meal-${day}`);
 
-        [dateCell, mealCell].forEach(cell => {
-            if (cell) {
-                cell.style.backgroundColor = "#f0f8ff";
-                cell.style.fontWeight = "normal";
-            }
-        });
-    });
-
-    if (!weekdays.includes(today)) {
-        return;
-    }
-
-    // 오늘 날짜 강조
-    const todayDateCell = document.getElementById(`meal-date-${today}`);
-    const todayMealCell = document.getElementById(`meal-${today}`);
-
-    [todayDateCell, todayMealCell].forEach(cell => {
-        if (cell) {
-            cell.style.backgroundColor = "#FFFF00";
-            cell.style.fontWeight = "bold";
-        }
+        if (dateCell) dateCell.classList.toggle("meal-today", isToday);
+        if (mealCell) mealCell.classList.toggle("meal-today", isToday);
     });
 }
 // =========================
