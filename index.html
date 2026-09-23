@@ -976,13 +976,51 @@ body.dark-mode .schedule td.current-class {
     background-color: #a5f3a8 !important;
     color: #111 !important;
 }
+
+/* ===== 탭 네비게이션 ===== */
+.site-tabs{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:6px;
+    max-width:900px;
+    margin:6px auto 22px;
+    border-bottom:2px solid #cfeaff;
+}
+.tab-btn{
+    background:none;
+    border:none;
+    padding:10px 20px;
+    font-size:1rem;
+    font-weight:700;
+    color:#7a8699;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    transition:color .2s ease, border-color .2s ease;
+}
+.tab-btn:hover{ color:#0077cc; }
+.tab-btn.active{ color:#0077cc; border-bottom-color:#0077cc; }
+.tab-panel{ display:none; }
+.tab-panel.active{ display:block; }
+body.dark-mode .site-tabs{ border-bottom-color:#333; }
+body.dark-mode .tab-btn{ color:#999; }
+body.dark-mode .tab-btn.active{ color:#7fd0ff; border-bottom-color:#7fd0ff; }
+@media (max-width:768px){
+    .tab-btn{ padding:8px 12px; font-size:0.9rem; }
+}
 </style>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
-    <div class="all">
-
 <h1>학교 알리미</h1>
+
+<div class="site-tabs">
+<button type="button" class="tab-btn active" data-tab="tab1">🗓️ 시간표·급식</button>
+<button type="button" class="tab-btn" data-tab="tab2">📝 노트·쉬는시간</button>
+<button type="button" class="tab-btn" data-tab="tab3">📱 QR·끝말잇기</button>
+</div>
+
+<div class="all tab-panel active" id="tab1">
 
 <div class="menu">
 
@@ -1067,6 +1105,8 @@ body.dark-mode .schedule td.current-class {
 </div>
     </div>
 
+<p style="text-align:center;"><a href="https://docs.google.com/forms/d/e/1FAIpQLSfdob26-0nhKKvbSe0dTBH2aaEgljTPs1mzO3VwkMyh9XtHlA/viewform">설문조사 참여하기</a></p>
+
 </div>
 
 
@@ -1074,7 +1114,7 @@ body.dark-mode .schedule td.current-class {
      노트 + 쉬는 시간
 ========================= -->
 
-<div class="bottom-container">
+<div class="bottom-container tab-panel" id="tab2">
 
     <!-- 왼쪽: my note -->
 
@@ -1165,11 +1205,6 @@ body.dark-mode .schedule td.current-class {
     </div>
 
 </div>
-
-
-    
-<p><a href="https://docs.google.com/forms/d/e/1FAIpQLSfdob26-0nhKKvbSe0dTBH2aaEgljTPs1mzO3VwkMyh9XtHlA/viewform">설문조사 참여하기</a></p>
-
 
 
 <div id="gameModal" class="game-modal" aria-hidden="true"><div class="game-window"><div class="game-window-bar"><b>🧱 티미크래프트</b><button id="closeGameBtn" type="button">✕ 닫기</button></div><iframe id="gameFrame" title="티미크래프트 게임" allow="fullscreen; pointer-lock"></iframe></div></div>
@@ -2100,6 +2135,7 @@ function openTimicraft(){try{if(!gameFrame.srcdoc){const bytes=Uint8Array.from(a
 const themeToggle=document.getElementById("themeToggle");function applyTheme(isDark){document.body.classList.toggle("dark-mode",isDark);themeToggle.textContent=isDark?"☀️ 라이트 모드":"🌙 다크 모드";}themeToggle.addEventListener("click",()=>{const d=!document.body.classList.contains("dark-mode");applyTheme(d);localStorage.setItem("darkMode",d?"1":"0");});applyTheme(localStorage.getItem("darkMode")==="1");
 </script>
 
+<div id="tab3" class="tab-panel">
 <!-- QR 코드 섹션 -->
 <div style="max-width:420px;margin:24px auto 40px;padding:18px 16px;border-radius:16px;background:rgba(255,255,255,0.9);box-shadow:0 4px 14px rgba(0,0,0,0.12);text-align:center;">
   <h3 style="margin:0 0 10px;font-size:1.05rem;">📱 모바일로 열기</h3>
@@ -2144,6 +2180,21 @@ const themeToggle=document.getElementById("themeToggle");function applyTheme(isD
   </div>
 
 </a>
+
+</div>
 </section>
+<script>
+(function(){
+    var buttons = document.querySelectorAll(".tab-btn");
+    var panels = document.querySelectorAll(".tab-panel");
+    buttons.forEach(function(btn){
+        btn.addEventListener("click", function(){
+            var target = btn.getAttribute("data-tab");
+            buttons.forEach(function(b){ b.classList.toggle("active", b === btn); });
+            panels.forEach(function(p){ p.classList.toggle("active", p.id === target); });
+        });
+    });
+})();
+</script>
 </body>
 </html>
