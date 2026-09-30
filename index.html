@@ -1008,6 +1008,58 @@ body.dark-mode .tab-btn.active{ color:#7fd0ff; border-bottom-color:#7fd0ff; }
 @media (max-width:768px){
     .tab-btn{ padding:8px 12px; font-size:0.9rem; }
 }
+
+/* =========================
+   주간 이동 / 날짜 선택
+========================= */
+.week-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin: 10px 0 20px;
+    flex-wrap: wrap;
+}
+
+.week-control button,
+#datePicker {
+    height: 36px;
+    padding: 5px 12px;
+    border: 1px solid #66ccff;
+    border-radius: 7px;
+    background: white;
+    color: #000;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.week-control button:hover {
+    background: #e6f7ff;
+}
+
+#datePicker {
+    cursor: pointer;
+}
+
+body.dark-mode .week-control button,
+body.dark-mode #datePicker {
+    background: #fff !important;
+    color: #111 !important;
+    border-color: #aaa !important;
+}
+
+@media (max-width: 600px) {
+    .week-control {
+        gap: 5px;
+    }
+
+    .week-control button,
+    #datePicker {
+        font-size: 13px;
+        padding: 5px 8px;
+    }
+}
 </style>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
@@ -1044,6 +1096,16 @@ body.dark-mode .tab-btn.active{ color:#7fd0ff; border-bottom-color:#7fd0ff; }
 <select id="class"></select>
 <button id="themeToggle" type="button">🌙 다크 모드</button>
 
+</div>
+
+<!-- =========================
+     주간 이동 / 날짜 선택
+========================= -->
+<div class="week-control">
+    <button id="prevWeekBtn" type="button">◀ 전 주</button>
+    <input id="datePicker" type="date" aria-label="날짜 선택">
+    <button id="todayBtn" type="button">오늘</button>
+    <button id="nextWeekBtn" type="button">다음 주 ▶</button>
 </div>
 
 <div class="table-container">
@@ -1262,39 +1324,50 @@ function createScheduleTable(periods = 7) {
 
 
 // =========================
-// 이번주 월~금 날짜 구하기
+// 선택한 날짜가 포함된 주의 월~금 날짜 구하기
 // =========================
 
+let selectedDate = new Date();
+
+function formatDateForInput(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
 function getWeekDates(){
+    const baseDate = new Date(selectedDate);
+    const day = baseDate.getDay();
+    const monday = new Date(baseDate);
 
-    const today=new Date();
-
-    const day=today.getDay();
-
-    const monday=new Date(today);
-
-    monday.setDate(today.getDate()-(day===0?6:day-1));
+    monday.setDate(
+        baseDate.getDate() - (day === 0 ? 6 : day - 1)
+    );
 
     const result=[];
 
     for(let i=0;i<5;i++){
-
         const d=new Date(monday);
-
         d.setDate(monday.getDate()+i);
 
         const y=d.getFullYear();
-
         const m=String(d.getMonth()+1).padStart(2,"0");
-
         const dd=String(d.getDate()).padStart(2,"0");
 
         result.push(`${y}${m}${dd}`);
-
     }
 
     return result;
+}
 
+// 현재 보고 있는 주 안에 오늘이 포함되어 있는지 확인
+function isTodayInDisplayedWeek() {
+    const today = new Date();
+    const todayKey =
+        `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,"0")}${String(today.getDate()).padStart(2,"0")}`;
+
+    return getWeekDates().includes(todayKey);
 }
 
 // =========================
@@ -1504,13 +1577,11 @@ function setupClassNotifications() {
 // =========================
 
 function highlightTodayAndCurrentClass() {
-
     const now = new Date();
     const dayNames = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
     const today = dayNames[now.getDay()];
     const weekdays = ["mon", "tue", "wed", "thu", "fri"];
 
-    // 기존 강조 제거
     weekdays.forEach(day => {
         for (let i = 1; i <= 7; i++) {
             const cell = document.getElementById(`${day}${i}`);
@@ -1518,16 +1589,16 @@ function highlightTodayAndCurrentClass() {
         }
     });
 
-    // 주말이면 종료
+    // 다른 주를 보고 있을 때는 오늘 강조를 표시하지 않음
+    if (!isTodayInDisplayedWeek()) return;
+
     if (!weekdays.includes(today)) return;
 
-    // 오늘 요일 전체 강조
     for (let i = 1; i <= 7; i++) {
         const cell = document.getElementById(`${today}${i}`);
         if (cell) cell.classList.add("today-cell");
     }
 
-    // 현재 교시 강조
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
     classTimes.forEach((time, index) => {
@@ -1553,14 +1624,66 @@ function highlightTodayMeal() {
     const today = dayNames[new Date().getDay()];
 
     ["mon", "tue", "wed", "thu", "fri"].forEach(day => {
-        const isToday = day === today;
         const dateCell = document.getElementById(`meal-date-${day}`);
         const mealCell = document.getElementById(`meal-${day}`);
+
+        const isToday = isTodayInDisplayedWeek() && day === today;
 
         if (dateCell) dateCell.classList.toggle("meal-today", isToday);
         if (mealCell) mealCell.classList.toggle("meal-today", isToday);
     });
 }
+
+// =========================
+// 주간 이동 + 날짜 선택
+// =========================
+
+const datePicker = document.getElementById("datePicker");
+const prevWeekBtn = document.getElementById("prevWeekBtn");
+const nextWeekBtn = document.getElementById("nextWeekBtn");
+const todayBtn = document.getElementById("todayBtn");
+
+if (datePicker) {
+    datePicker.value = formatDateForInput(selectedDate);
+
+    datePicker.addEventListener("change", () => {
+        if (!datePicker.value) return;
+
+        const [year, month, day] = datePicker.value.split("-").map(Number);
+        selectedDate = new Date(year, month - 1, day);
+
+        loadTimetable();
+        loadMeals();
+    });
+}
+
+if (prevWeekBtn) {
+    prevWeekBtn.addEventListener("click", () => {
+        selectedDate.setDate(selectedDate.getDate() - 7);
+        datePicker.value = formatDateForInput(selectedDate);
+        loadTimetable();
+        loadMeals();
+    });
+}
+
+if (nextWeekBtn) {
+    nextWeekBtn.addEventListener("click", () => {
+        selectedDate.setDate(selectedDate.getDate() + 7);
+        datePicker.value = formatDateForInput(selectedDate);
+        loadTimetable();
+        loadMeals();
+    });
+}
+
+if (todayBtn) {
+    todayBtn.addEventListener("click", () => {
+        selectedDate = new Date();
+        datePicker.value = formatDateForInput(selectedDate);
+        loadTimetable();
+        loadMeals();
+    });
+}
+
 // =========================
 // 반 목록
 // =========================
