@@ -915,6 +915,89 @@ body.dark-mode .break-box button {
 }
 
 
+/* 학교 즐겨찾기 */
+.school-search-row{
+    display:flex;
+    gap:6px;
+    align-items:center;
+}
+.school-search-row input{
+    flex:1;
+    min-width:0;
+}
+.favorite-school-btn{
+    width:42px;
+    height:42px;
+    flex:0 0 42px;
+    border:1px solid #bbb;
+    border-radius:10px;
+    background:#fff;
+    color:#f5b400;
+    font-size:24px;
+    line-height:1;
+    cursor:pointer;
+    transition:transform .15s, background .15s;
+}
+.favorite-school-btn:hover{
+    transform:scale(1.05);
+    background:#fff8dc;
+}
+.favorite-school-btn.is-favorite{
+    color:#f5a000;
+    background:#fff3b0;
+}
+.favorite-schools{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:7px;
+}
+.favorite-school-item{
+    display:flex;
+    align-items:center;
+    gap:3px;
+    max-width:100%;
+}
+.favorite-school-load{
+    border:1px solid #bbb;
+    border-radius:999px;
+    background:#f7f7f7;
+    padding:6px 10px;
+    cursor:pointer;
+    font-size:13px;
+    max-width:220px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+.favorite-school-remove{
+    border:0;
+    background:transparent;
+    cursor:pointer;
+    color:#888;
+    font-size:15px;
+    padding:2px 3px;
+}
+.favorite-school-remove:hover{color:#d00;}
+.dark-mode .favorite-school-btn{
+    background:#222;
+    border-color:#555;
+    color:#ffd54f;
+}
+.dark-mode .favorite-school-btn.is-favorite{
+    background:#594900;
+}
+.dark-mode .favorite-school-load{
+    background:#222;
+    color:#eee;
+    border-color:#555;
+}
+.dark-mode .favorite-school-remove{color:#aaa;}
+@media (max-width:600px){
+    .favorite-school-btn{width:38px;height:38px;flex-basis:38px;}
+    .favorite-school-load{max-width:180px;}
+}
+
 .school-search {
     width: 100%;
 }
@@ -1078,8 +1161,12 @@ body.dark-mode #datePicker {
 
 <label for="school">학교 검색</label>
 <div class="school-search">
-    <input id="school" type="search" list="schoolList" value="옥정중학교" placeholder="학교명을 입력하세요 (전국 학교 검색)" autocomplete="off">
+    <div class="school-search-row">
+        <input id="school" type="search" list="schoolList" value="옥정중학교" placeholder="학교명을 입력하세요 (전국 학교 검색)" autocomplete="off">
+        <button id="favoriteSchoolBtn" type="button" class="favorite-school-btn" title="현재 학교를 즐겨찾기에 추가">☆</button>
+    </div>
     <datalist id="schoolList"></datalist>
+    <div id="favoriteSchools" class="favorite-schools" aria-label="학교 즐겨찾기"></div>
 </div>
 
 <label>학년 선택</label>
@@ -1287,6 +1374,145 @@ let selectedSchool = {
 
 // 검색 결과 캐시: 화면에 보여준 문자열("학교명 (지역)") -> 학교 정보
 const schoolSearchCache = new Map();
+
+const FAVORITE_SCHOOLS_KEY = "schoolNoticeFavoriteSchools";
+const SELECTED_SCHOOL_KEY = "schoolNoticeSelectedSchool";
+
+function getFavoriteSchools() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(FAVORITE_SCHOOLS_KEY) || "[]");
+        return Array.isArray(saved) ? saved : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function saveFavoriteSchools(list) {
+    localStorage.setItem(FAVORITE_SCHOOLS_KEY, JSON.stringify(list));
+}
+
+function schoolIdentity(school) {
+    return `${school.office || ""}|${school.code || ""}|${school.level || ""}`;
+}
+
+function isFavoriteSchool(school) {
+    const id = schoolIdentity(school);
+    return getFavoriteSchools().some(item => schoolIdentity(item) === id);
+}
+
+function saveSelectedSchool() {
+    try {
+        localStorage.setItem(SELECTED_SCHOOL_KEY, JSON.stringify(selectedSchool));
+    } catch (error) {
+        console.warn("선택 학교 저장 오류:", error);
+    }
+}
+
+function restoreSelectedSchool() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(SELECTED_SCHOOL_KEY) || "null");
+        if (saved && saved.name && saved.office && saved.code) {
+            selectedSchool = {
+                name: saved.name,
+                office: saved.office,
+                code: saved.code,
+                level: saved.level || "mis"
+            };
+            schoolSelect.value = selectedSchool.name;
+            return true;
+        }
+    } catch (error) {
+        console.warn("저장된 학교 복원 오류:", error);
+    }
+    return false;
+}
+
+function updateFavoriteButton() {
+    const button = document.getElementById("favoriteSchoolBtn");
+    if (!button) return;
+    const favorite = isFavoriteSchool(selectedSchool);
+    button.classList.toggle("is-favorite", favorite);
+    button.textContent = favorite ? "★" : "☆";
+    button.title = favorite ? "즐겨찾기에서 삭제" : "현재 학교를 즐겨찾기에 추가";
+    button.setAttribute("aria-label", button.title);
+}
+
+function renderFavoriteSchools() {
+    const container = document.getElementById("favoriteSchools");
+    if (!container) return;
+
+    container.innerHTML = "";
+    const favorites = getFavoriteSchools();
+
+    favorites.forEach(school => {
+        const item = document.createElement("div");
+        item.className = "favorite-school-item";
+
+        const loadButton = document.createElement("button");
+        loadButton.type = "button";
+        loadButton.className = "favorite-school-load";
+        loadButton.textContent = `★ ${school.name}`;
+        loadButton.title = `${school.name} 불러오기`;
+        loadButton.addEventListener("click", () => {
+            selectedSchool = {
+                name: school.name,
+                office: school.office,
+                code: school.code,
+                level: school.level || "mis"
+            };
+            schoolSelect.value = school.name;
+            saveSelectedSchool();
+            updateFavoriteButton();
+            renderFavoriteSchools();
+            updateClass();
+            loadTimetable();
+            loadMeals();
+        });
+
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "favorite-school-remove";
+        removeButton.textContent = "×";
+        removeButton.title = "즐겨찾기에서 삭제";
+        removeButton.addEventListener("click", () => {
+            const next = getFavoriteSchools().filter(item =>
+                schoolIdentity(item) !== schoolIdentity(school)
+            );
+            saveFavoriteSchools(next);
+            renderFavoriteSchools();
+            updateFavoriteButton();
+        });
+
+        item.appendChild(loadButton);
+        item.appendChild(removeButton);
+        container.appendChild(item);
+    });
+}
+
+function toggleFavoriteSchool() {
+    if (!selectedSchool || !selectedSchool.office || !selectedSchool.code) return;
+
+    const favorites = getFavoriteSchools();
+    const id = schoolIdentity(selectedSchool);
+    const index = favorites.findIndex(item => schoolIdentity(item) === id);
+
+    if (index >= 0) {
+        favorites.splice(index, 1);
+    } else {
+        favorites.push({
+            name: selectedSchool.name,
+            office: selectedSchool.office,
+            code: selectedSchool.code,
+            level: selectedSchool.level || "mis"
+        });
+    }
+
+    saveFavoriteSchools(favorites);
+    renderFavoriteSchools();
+    updateFavoriteButton();
+}
+
+
 
 // =========================
 // HTML 요소
@@ -1773,6 +1999,10 @@ function loadSelectedSchool() {
         level: item.level || "mis"
     };
 
+    saveSelectedSchool();
+    updateFavoriteButton();
+    renderFavoriteSchools();
+
     updateClass();
     loadTimetable();
     loadMeals();
@@ -1787,6 +2017,11 @@ schoolSelect.addEventListener("input", () => {
     }
 });
 schoolSelect.addEventListener("change", loadSelectedSchool);
+
+const favoriteSchoolBtn = document.getElementById("favoriteSchoolBtn");
+if (favoriteSchoolBtn) {
+    favoriteSchoolBtn.addEventListener("click", toggleFavoriteSchool);
+}
 
 gradeSelect.addEventListener("change", () => {
 
@@ -1902,6 +2137,12 @@ classSelect.addEventListener("change", loadTimetable);
 // =========================
 // 시작
 // =========================
+
+// 저장된 학교와 즐겨찾기는 localStorage에 보관되어
+// 새로고침하거나 사이트를 나갔다 다시 들어와도 유지됩니다.
+restoreSelectedSchool();
+renderFavoriteSchools();
+updateFavoriteButton();
 
 updateClass();
 
