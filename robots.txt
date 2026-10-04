@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://timmy909-dot.github.io/schools_chedule_tg_1/sitemap.xml
