@@ -2564,7 +2564,14 @@ function openTimicraft(){
     try{
         if(!gameFrame.srcdoc){
             const bytes=Uint8Array.from(atob(gameData),c=>c.charCodeAt(0));
-            gameFrame.srcdoc=patchTimicraft(new TextDecoder("utf-8").decode(bytes));
+            const original=new TextDecoder("utf-8").decode(bytes);
+            let finalSrc=original;
+            try{
+                finalSrc=patchTimicraft(original);
+            }catch(patchError){
+                console.error("패치 적용 실패, 원본으로 실행:",patchError);
+            }
+            gameFrame.srcdoc=finalSrc;
         }
         gameModal.classList.add("open");
         gameModal.setAttribute("aria-hidden","false");
